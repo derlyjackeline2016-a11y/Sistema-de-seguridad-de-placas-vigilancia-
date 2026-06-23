@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Acceso Vehicular</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --surface2: #f8f9fb;
+            --border: #e2e6ea;
+            --text-primary: #1a1d23;
+            --text-secondary: #5a6270;
+            --text-muted: #9aa0ab;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --danger-border: #fecaca;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --success-border: #bbf7d0;
+            --purple: #7c3aed;
+            --teal: #0891b2;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-lg: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 0 0 40px 0;
+        }
+
+        /* ── CABECERA ─────────────────────────────────────────── */
+        .app-header {
+            background: var(--accent);
+            color: #fff;
+            padding: 16px 20px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .app-header .icon { font-size: 22px; }
+        .app-header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+        .sync-status {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0.85;
+        }
+        .sync-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #86efac;
+            flex-shrink: 0;
+        }
+        .sync-dot.error { background: #fca5a5; }
+        .sync-dot.loading { background: #fde68a; animation: blink 1s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        /* ── CONTENEDOR ───────────────────────────────────────── */
+        .container { max-width: 420px; margin: 0 auto; padding: 18px 14px 0; }
+
+        /* ── BOTÓN MIC ────────────────────────────────────────── */
+        .mic-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 18px; }
+
+        .btn-mic {
+            width: 108px; height: 108px;
+            border-radius: 50%;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(37,99,235,0.35);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 5px;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.15s, box-shadow 0.15s;
+            line-height: 1.3;
+            text-align: center;
+        }
+        .btn-mic:active { transform: scale(0.95); }
+        .btn-mic .mic-icon { font-size: 26px; }
+
+        .btn-mic.listening {
+            background: var(--danger);
+            box-shadow: 0 0 0 0 rgba(220,38,38,0.4);
+            animation: pulse-mic 1.4s infinite;
+        }
+        @keyframes pulse-mic {
+            0%   { box-shadow: 0 0 0 0   rgba(220,38,38,0.45); }
+            60%  { box-shadow: 0 0 0 18px rgba(220,38,38,0); }
+            100% { box-shadow: 0 0 0 0   rgba(220,38,38,0); }
+        }
+
+        .feedback-text {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+            min-height: 20px;
+            text-align: center;
+        }
+        .plate-interpreted {
+            margin-top: 4px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--accent);
+            background: #eff6ff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            min-height: 24px;
+            display: inline-block;
+        }
+
+        /* ── TARJETA MANUAL ───────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .card-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+
+        .input-field {
+            width: 100%;
+            padding: 11px 14px;
+            font-size: 15px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface2);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.15s, background 0.15s;
+            font-family: inherit;
+        }
+        .input-field:focus {
+            border-color: var(--accent);
+            background: #fff;
+        }
+        .input-field.plate-field {
+            text-transform: uppercase;
+            font-weight: 700;
+            font-size: 17px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            background: var(--text-primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:hover { background: #2d3340; }
+
+        /* ── RESULTADO ────────────────────────────────────────── */
+        #result-box {
+            display: none;
+            padding: 16px;
+            border-radius: var(--radius);
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+        #result-box.match {
+            background: var(--success-light);
+            color: var(--success);
+            border: 1.5px solid var(--success-border);
+        }
+        #result-box.no-match {
+            background: var(--danger-light);
+            color: var(--danger);
+            border: 1.5px solid var(--danger-border);
+        }
+        .result-plate { font-size: 34px; display: block; margin: 4px 0 2px; letter-spacing: 2px; }
+        .result-dest { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+
+        /* ── ACCIONES ─────────────────────────────────────────── */
+        .actions-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn-add {
+            display: none;
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            background: var(--success);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-add:hover { background: #15803d; }
+
+        .btn-photo {
+            display: none;
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            background: var(--purple);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-photo:hover { background: #6d28d9; }
+
+        /* ── CÁMARA ───────────────────────────────────────────── */
+        #camera-zone {
+            display: none;
+            background: #111;
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-md);
+        }
+        #video-preview { width: 100%; display: block; }
+        .btn-capture {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            background: #e83e8c;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ── NOTIFICACIÓN INLINE ──────────────────────────────── */
+        #toast {
+            display: none;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            animation: fadeIn 0.2s ease;
+        }
+        #toast.warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        #toast.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        #toast.err  { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger-border); }
+
+        /* ── HISTORIAL ────────────────────────────────────────── */
+        .history-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .history-header h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+        .btn-clear {
+            font-size: 11px;
+            font-weight: 700;
+            background: none;
+            color: var(--danger);
+            border: 1.5px solid var(--danger);
+            padding: 4px 9px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .history-list { max-height: 300px; overflow-y: auto; list-style: none; }
+
+        .history-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-item.item-match { border-left: 4px solid var(--success); }
+        .history-item.item-no-match { border-left: 4px solid var(--danger); }
+
+        .h-row { display: flex; justify-content: space-between; align-items: center; }
+        .h-plate { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+        .item-match .h-plate { color: var(--success); }
+        .item-no-match .h-plate { color: var(--danger); }
+        .h-time { font-size: 11px; color: var(--text-muted); }
+        .h-dest { font-size: 12px; color: var(--text-secondary); font-style: italic; }
+        .h-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .item-match .h-badge { background: var(--success-light); color: var(--success); }
+        .item-no-match .h-badge { background: var(--danger-light); color: var(--danger); }
+
+        .history-thumb {
+            width: 100%;
+            max-height: 110px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-top: 6px;
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        /* ── ZONA INFERIOR ────────────────────────────────────── */
+        .bottom-zone {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 4px;
+            border-top: 1px dashed var(--border);
+            margin-top: 4px;
+        }
+        .btn-secondary {
+            width: 100%;
+            padding: 11px;
+            font-size: 13px;
+            font-weight: 700;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-download { background: var(--teal); color: #fff; }
+        .btn-download:hover { background: #0e7490; }
+
+        /* ── VACÍO ────────────────────────────────────────────── */
+        .empty-state {
+            padding: 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .empty-state .empty-icon { font-size: 28px; margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+
+<header class="app-header">
+    <span class="icon">🚗</span>
+    <h1>Control de Acceso Vehicular</h1>
+    <div class="sync-status">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">Red</span>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- MIC -->
+    <div class="mic-section">
+        <button id="start-btn" class="btn-mic" aria-label="Iniciar dictado de placa">
+            <span class="mic-icon">🎙️</span>
+            <span id="mic-label">DICTAR<br>PLACA</span>
+        </button>
+        <div class="feedback-text" id="text-heard"></div>
+        <div class="plate-interpreted" id="processed-plate" style="display:none;"></div>
+    </div>
+
+    <!-- ENTRADA MANUAL -->
+    <div class="card">
+        <div class="card-label">Búsqueda manual</div>
+        <div class="input-group">
+            <input
+                class="input-field plate-field"
+                type="text"
+                id="manual-input"
+                placeholder="Ej. ABC123"
+                maxlength="8"
+                autocomplete="off"
+                autocorrect="off"
+                spellcheck="false"
+                aria-label="Número de placa"
+            >
+            <input
+                class="input-field"
+                type="text"
+                id="description-input"
+                placeholder="Destino / Oficina / Detalle"
+                maxlength="50"
+                aria-label="Destino o descripción"
+            >
+            <button id="manual-btn" class="btn-primary">Buscar / Registrar</button>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICACIONES -->
+    <div id="toast"></div>
+
+    <!-- RESULTADO -->
+    <div id="result-box" role="status" aria-live="polite"></div>
+
+    <!-- ACCIONES -->
+    <div class="actions-row">
+        <button id="add-plate-btn" class="btn-add" aria-label="Agregar placa a la base de datos"></button>
+        <button id="photo-trigger-btn" class="btn-photo" aria-label="Tomar foto de evidencia">
+            📷 Foto
+        </button>
+    </div>
+
+    <!-- CÁMARA -->
+    <div id="camera-zone">
+        <video id="video-preview" autoplay playsinline></video>
+        <button id="capture-btn" class="btn-capture">📸 Capturar evidencia</button>
+        <canvas id="hidden-canvas" style="display:none;"></canvas>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div class="history-card">
+        <div class="history-header">
+            <h3>📋 Historial del turno</h3>
+            <button id="clear-history-btn" class="btn-clear">Borrar</button>
+        </div>
+        <ul id="history-list" class="history-list">
+            <li class="empty-state">
+                <div class="empty-icon">🔍</div>
+                Sin registros en esta sesión.
+            </li>
+        </ul>
+    </div>
+
+    <!-- ZONA INFERIOR -->
+    <div class="bottom-zone">
+        <button id="download-history-btn" class="btn-secondary btn-download">
+            ⬇️ Descargar reporte del turno (.txt)
+        </button>
+    </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* ════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — Mueve BIN_ID y API_KEY a un backend real
+   para producción. Aquí se dejan como constantes de entorno
+   simuladas. En un entorno productivo, estas credenciales
+   deben vivir en el servidor, nunca en el cliente.
+   ════════════════════════════════════════════════════════════ */
+const CONFIG = {
+    BIN_ID:  "6677f3e2ad19ca34f87cf105",
+    API_KEY: "$2a$10$R7Mh9Z6wT98DPhvG1PqWeu9R2E7vK36lD1bHw8Y6Z5C4v3b2a1m6q",
+    API_URL: () => `https://api.jsonbin.io/v3/b/${CONFIG.BIN_ID}`,
+};
+
+/* ── BASE DE PLACAS ORIGINALES ─────────────────────────────── */
+const PLACAS_BASE = new Set([
+    "BBM711","CVD838","DAI825","EFL609","BHS566","BLS766","CYB452","DOL036",
+    "DOM440","EMM681","BOV146","BXX349","BYT209","FYN110","GLL710","HCK366",
+    "IJW229","FZT419","GLO124","HCT315","IMS828","GLW860","HIS346","INL069",
+    "GUU476","HIX775","HKN066","IOZ585","IOZ703","JBL483","KFT727","LMY030",
+    "MAY198","JCS950","JDS649","KIN073","KWO351","LNK857","LOM011","MPR103",
+    "JGV282","KWR192","LOW827","JLZ983","KWS486","LPK156","JMR832","KWV086",
+    "LXZ817","JRL726","JSW619","JWR956","KXL601","LZT553","JWY709","NAP437",
+    "PBU292","QIL324","RAB968","NBV019","PCM127","OOZ929","RAV968","NDQ957",
+    "PDZ104","RDQ841","NDW173","PGS914","RGN888","NIS251","PSX801","RGW149",
+    "NIV464","PUL504","RHS566","NJR235","PXU396","ROL676","NLS858","PXX790",
+    "RZF953","NSU691","PYD399","NSU987","PYN456","PYO117","PYP195","PYQ399",
+    "UET533","UGV132","URU669","USS975","ZZT334","UTL802","UUK348"
+]);
+
+/* ── ESTADO DE LA APLICACIÓN ───────────────────────────────── */
+const state = {
+    placasNuevas: [],
+    descripcionesNuevas: {},
+    historial: [],
+    fotosSesion: {},
+    ultimaPlaca: "",
+    ultimoId: null,
+    streamCamara: null,
+};
+
+/* ── REFERENCIAS DOM ───────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const el = {
+    startBtn:         $('start-btn'),
+    micLabel:         $('mic-label'),
+    textHeard:        $('text-heard'),
+    processedPlate:   $('processed-plate'),
+    manualInput:      $('manual-input'),
+    descInput:        $('description-input'),
+    manualBtn:        $('manual-btn'),
+    resultBox:        $('result-box'),
+    addPlateBtn:      $('add-plate-btn'),
+    photoTriggerBtn:  $('photo-trigger-btn'),
+    cameraZone:       $('camera-zone'),
+    videoPreview:     $('video-preview'),
+    captureBtn:       $('capture-btn'),
+    hiddenCanvas:     $('hidden-canvas'),
+    historyList:      $('history-list'),
+    clearHistoryBtn:  $('clear-history-btn'),
+    downloadHistoryBtn:$('download-history-btn'),
+    toast:            $('toast'),
+    syncDot:          $('sync-dot'),
+    syncLabel:        $('sync-label'),
+};
+
+/* ════════════════════════════════════════════════════════════
+   SINCRONIZACIÓN CON JSONBIN
+   ════════════════════════════════════════════════════════════ */
+function setSyncStatus(status) {
+    // status: 'ok' | 'error' | 'loading'
+    el.syncDot.className = 'sync-dot' + (status !== 'ok' ? ' ' + status : '');
+    el.syncLabel.textContent = status === 'ok' ? 'Red' : status === 'loading' ? 'Sync…' : 'Sin red';
+}
+
+async function descargarDatosNube() {
+    setSyncStatus('loading');
+    try {
+        const resp = await fetch(CONFIG.API_URL(), {
+            headers: { 'X-Master-Key': CONFIG.API_KEY },
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const record = data.record || {};
+        state.placasNuevas         = Array.isArray(record.placas)       ? record.placas       : [];
+        state.descripcionesNuevas  = (record.descripciones && typeof record.descripciones === 'object')
+                                        ? record.descripciones : {};
+        setSyncStatus('ok');
+    } catch (err) {
+        console.error('[Nube] Descarga fallida:', err);
+        setSyncStatus('error');
+        mostrarToast('No se pudo sincronizar con la red. Trabajando en modo local.', 'warn');
+    }
+}
+
+async function subirDatosNube() {
+    setSyncStatus('loading');
+    try {
+        const body = {
+            placas: state.placasNuevas,
+            descripciones: state.descripcionesNuevas,
+        };
+        const resp = await fetch(CONFIG.API_URL(), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': CONFIG.API_KEY,
+            },
+            body: JSON.stringify(body),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        setSyncStatus('ok');
+    } catch (err) {
+        console.error('[Nube] Subida fallida:', err);
+        setSyncStatus('error');
+        mostrarToast('Error al guardar en la red. El cambio se aplicó localmente.', 'err');
+    }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RECONOCIMIENTO DE VOZ
+   ════════════════════════════════════════════════════════════ */
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let recognition = null;
+
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = 'es-CO';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    el.startBtn.addEventListener('click', () => {
+        ocultarResultados();
+        el.textHeard.textContent = 'Escuchando…';
+        el.startBtn.classList.add('listening');
+        el.micLabel.innerHTML = 'ESCUCHANDO…';
+        try { recognition.start(); } catch (e) { /* ya activo */ }
+    });
+
+    recognition.onresult = (event) => {
+        const transcripcion = event.results[0][0].transcript.toLowerCase();
+        el.textHeard.textContent = `Escuché: "${transcripcion.toUpperCase()}"`;
+        state.ultimaPlaca = corregirFonetica(transcripcion);
+        el.processedPlate.textContent = `Interpretado: ${state.ultimaPlaca}`;
+        el.processedPlate.style.display = 'inline-block';
+        verificarPlaca(state.ultimaPlaca, "");
+        restaurarMic();
+    };
+
+    recognition.onerror = (e) => {
+        console.warn('[Voz] Error:', e.error);
+        if (e.error === 'not-allowed') {
+            mostrarToast('Permiso de micrófono denegado. Actívalo en la configuración del navegador.', 'err');
+        } else if (e.error !== 'aborted') {
+            mostrarToast('No se detectó voz. Intenta de nuevo.', 'warn');
+        }
+        restaurarMic();
+    };
+
+    recognition.onend = restaurarMic;
+} else {
+    el.startBtn.disabled = true;
+    el.startBtn.style.opacity = '0.4';
+    el.startBtn.title = 'Reconocimiento de voz no disponible en este navegador';
+    mostrarToast('Este navegador no soporta dictado por voz. Usa la entrada manual.', 'warn');
+}
+
+function restaurarMic() {
+    el.startBtn.classList.remove('listening');
+    el.micLabel.innerHTML = 'DICTAR<br>PLACA';
+}
+
+/* ════════════════════════════════════════════════════════════
+   CORRECCIÓN FONÉTICA
+   ════════════════════════════════════════════════════════════ */
+function corregirFonetica(texto) {
+    let t = texto.trim().toLowerCase();
+
+    // Normalizar repeticiones ("b y otra b" → "b b")
+    t = t.replace(/([a-z0-9ñ])\s+(?:otra|otro)\s+\1/g, "$1 $1");
+    t = t.replace(/([a-z0-9ñ])\s+y\s+otra\s+\1/g,       "$1 $1");
+
+    const mapaLetras = {
+        "i latina": "i", "y griega": "y", "igreca": "y",
+        "uve": "v", "ve": "v", "be": "b",
+        "doble ve": "w", "doble u": "w",
+        "cero": "0", "uno": "1", "dos": "2", "tres": "3",
+        "cuatro": "4", "cinco": "5", "seis": "6",
+        "siete": "7", "ocho": "8", "nueve": "9",
+    };
+
+    // Reemplazar frases multipalabra primero
+    Object.keys(mapaLetras).sort((a, b) => b.length - a.length).forEach(frase => {
+        t = t.replace(new RegExp(`\\b${frase}\\b`, 'g'), mapaLetras[frase]);
+    });
+
+    // Limpiar caracteres no alfanuméricos y unir
+    const resultado = t.split(/\s+/)
+        .map(p => p.replace(/[^a-z0-9ñ]/g, ''))
+        .filter(Boolean)
+        .join('');
+
+    let limpio = resultado.toUpperCase();
+
+    // Intentar completar placa de 5 caracteres (2 letras + 3 números)
+    if (limpio.length === 5) {
+        const letras = limpio.substring(0, 2);
+        const nums   = limpio.substring(2);
+        if (/^[A-Z]{2}$/.test(letras) && /^[0-9]{3}$/.test(nums)) {
+            // Buscar si existe una placa base que empiece con letras[0] + letras
+            const candidata = letras[0] + limpio;
+            if (PLACAS_BASE.has(candidata) || state.placasNuevas.includes(candidata)) {
+                limpio = candidata;
+            }
+        }
+    }
+
+    return limpio;
+}
+
+/* ════════════════════════════════════════════════════════════
+   LÓGICA DE BÚSQUEDA / VERIFICACIÓN
+   ════════════════════════════════════════════════════════════ */
+
+/** Devuelve la placa normalizada si existe (maneja variante I↔Y), o null. */
+function buscarEnBase(placa) {
+    const total = [...PLACAS_BASE, ...state.placasNuevas];
+    if (total.includes(placa)) return placa;
+    // Variante I ↔ Y
+    const variante = placa.includes('I')
+        ? placa.replace(/I/g, 'Y')
+        : placa.includes('Y')
+            ? placa.replace(/Y/g, 'I')
+            : null;
+    if (variante && total.includes(variante)) return variante;
+    return null;
+}
+
+/** Resuelve el destino a mostrar según prioridades claras. */
+function resolverDestino(placaFinal, textoIngresado, existe) {
+    if (textoIngresado) return textoIngresado;
+    if (existe && state.descripcionesNuevas[placaFinal]) {
+        return state.descripcionesNuevas[placaFinal];
+    }
+    return existe ? 'Rutina' : '';
+}
+
+function verificarPlaca(placa, textoIngresado) {
+    if (!placa || placa.length < 3) {
+        mostrarToast('La placa debe tener al menos 3 caracteres.', 'warn');
+        return;
+    }
+
+    const placaEncontrada = buscarEnBase(placa);
+    const existe          = placaEncontrada !== null;
+    const placaFinal      = placaEncontrada || placa;
+    const destino         = resolverDestino(placaFinal, textoIngresado, existe);
+
+    // Actualizar destino en nube si el usuario escribió uno para placa ya conocida
+    if (existe && textoIngresado && state.placasNuevas.includes(placaFinal)) {
+        state.descripcionesNuevas[placaFinal] = textoIngresado;
+        subirDatosNube();
+    }
+
+    el.resultBox.style.display = 'block';
+    el.photoTriggerBtn.style.display = 'flex';
+
+    if (existe) {
+        el.resultBox.className = 'match';
+        el.resultBox.innerHTML =
+            `✅ ¡AUTORIZADO!<br>
+            <span class="result-plate">${placaFinal}</span>
+            <span class="result-dest">Destino: ${destino || 'Rutina'}</span>`;
+        el.addPlateBtn.style.display = 'none';
+        hablar('Existe');
+    } else {
+        el.resultBox.className = 'no-match';
+        el.resultBox.innerHTML =
+            `🚫 NO REGISTRADA<br>
+            <span class="result-plate">${placaFinal}</span>`;
+        el.addPlateBtn.textContent = `¿Agregar ${placaFinal}?`;
+        el.addPlateBtn.style.display = 'block';
+        hablar('No existe');
+    }
+
+    state.ultimaPlaca = placaFinal;
+    state.ultimoId    = Date.now();
+
+    const horaStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    state.historial.unshift({
+        id:      state.ultimoId,
+        placa:   placaFinal,
+        existe:  existe,
+        hora:    horaStr,
+        destino: destino,
+    });
+    if (state.historial.length > 50) state.historial.pop();
+    renderHistorial();
+}
+
+/* ── ENTRADA MANUAL ────────────────────────────────────────── */
+el.manualBtn.addEventListener('click', () => {
+    const texto = el.manualInput.value.trim();
+    if (!texto) return;
+    ocultarResultados();
+    state.ultimaPlaca = texto.replace(/[^a-zA-Z0-9ñÑ]/g, '').toUpperCase();
+    const destino = el.descInput.value.trim();
+    verificarPlaca(state.ultimaPlaca, destino);
+    el.manualInput.value = '';
+});
+
+el.manualInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') el.manualBtn.click();
+});
+
+/* ── AGREGAR PLACA ─────────────────────────────────────────── */
+el.addPlateBtn.addEventListener('click', () => {
+    const placa = state.ultimaPlaca;
+    if (!placa || placa.length < 3) return;
+
+    const dest = el.descInput.value.trim() || 'Autorizado Nuevo';
+
+    if (!state.placasNuevas.includes(placa)) {
+        state.placasNuevas.push(placa);
+    }
+    state.descripcionesNuevas[placa] = dest;
+
+    subirDatosNube();
+
+    el.addPlateBtn.style.display = 'none';
+    el.resultBox.className = 'match';
+    el.resultBox.innerHTML =
+        `✅ REGISTRADA EN RED<br>
+        <span class="result-plate">${placa}</span>
+        <span class="result-dest">Destino: ${dest}</span>`;
+    hablar('Placa agregada correctamente');
+
+    // Actualizar entrada en historial
+    state.historial = state.historial.map(item => {
+        if (item.id === state.ultimoId) {
+            return { ...item, existe: true, destino: dest };
+        }
+        return item;
+    });
+    renderHistorial();
+
+    setTimeout(() => { el.descInput.value = ''; }, 1500);
+});
+
+/* ════════════════════════════════════════════════════════════
+   CÁMARA
+   ════════════════════════════════════════════════════════════ */
+el.photoTriggerBtn.addEventListener('click', async () => {
+    el.cameraZone.style.display = 'block';
+    try {
+        // Preferir cámara trasera; fallback a cualquier cámara disponible
+        state.streamCamara = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false,
+        }).catch(() => navigator.mediaDevices.getUserMedia({ video: true, audio: false }));
+
+        el.videoPreview.srcObject = state.streamCamara;
+    } catch (err) {
+        console.warn('[Cámara] No disponible:', err);
+        mostrarToast('Cámara no disponible o permiso denegado.', 'err');
+        el.cameraZone.style.display = 'none';
+    }
+});
+
+el.captureBtn.addEventListener('click', () => {
+    if (!state.streamCamara) return;
+
+    const canvas = el.hiddenCanvas;
+    canvas.width  = el.videoPreview.videoWidth  || 640;
+    canvas.height = el.videoPreview.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(el.videoPreview, 0, 0, canvas.width, canvas.height);
+
+    // Etiqueta quemada
+    const ahora     = new Date();
+    const fechaStr  = ahora.toLocaleDateString();
+    const horaStr   = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const registro  = state.historial.find(i => i.id === state.ultimoId);
+    const destStr   = (registro && registro.destino) ? registro.destino : 'Rutina';
+    const etiqueta  = `${fechaStr} ${horaStr}  |  ${state.ultimaPlaca}  |  ${destStr}`;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.58)';
+    ctx.fillRect(0, canvas.height - 36, canvas.width, 36);
+    ctx.fillStyle   = '#ffffff';
+    ctx.font        = 'bold 14px -apple-system, Arial, sans-serif';
+    ctx.textAlign   = 'left';
+    ctx.fillText(etiqueta, 12, canvas.height - 11);
+
+    state.fotosSesion[state.ultimoId] = canvas.toDataURL('image/jpeg', 0.30);
+    renderHistorial();
+    cerrarCamara();
+});
+
+function cerrarCamara() {
+    el.cameraZone.style.display = 'none';
+    if (state.streamCamara) {
+        state.streamCamara.getTracks().forEach(t => t.stop());
+        state.streamCamara = null;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════
+   HISTORIAL
+   ════════════════════════════════════════════════════════════ */
+function renderHistorial() {
+    el.historyList.innerHTML = '';
+
+    if (state.historial.length === 0) {
+        el.historyList.innerHTML =
+            `<li class="empty-state">
+                <div class="empty-icon">🔍</div>
+                Sin registros en esta sesión.
+            </li>`;
+        return;
+    }
+
+    state.historial.forEach(item => {
+        const li      = document.createElement('li');
+        const clase   = item.existe ? 'item-match' : 'item-no-match';
+        const badgeTxt = item.existe ? 'OK' : 'No reg.';
+        const foto    = state.fotosSesion[item.id] || null;
+
+        li.className = `history-item ${clase}`;
+        li.innerHTML =
+            `<div class="h-row">
+                <span class="h-plate">${item.placa}</span>
+                <span class="h-badge">${badgeTxt}</span>
+            </div>
+            ${item.destino ? `<span class="h-dest">${item.destino}</span>` : ''}
+            <span class="h-time">${item.hora}</span>
+            ${foto ? `<img class="history-thumb" src="${foto}" alt="Evidencia ${item.placa}" style="display:block;">` : ''}`;
+
+        el.historyList.appendChild(li);
+    });
+}
+
+el.clearHistoryBtn.addEventListener('click', () => {
+    if (!confirm('¿Borrar el historial de pantalla? Los datos en la nube no se eliminan.')) return;
+    state.historial   = [];
+    state.fotosSesion = {};
+    renderHistorial();
+});
+
+/* ════════════════════════════════════════════════════════════
+   DESCARGA DE REPORTE
+   ════════════════════════════════════════════════════════════ */
+el.downloadHistoryBtn.addEventListener('click', () => {
+    if (state.historial.length === 0) {
+        mostrarToast('No hay registros para exportar.', 'warn');
+        return;
+    }
+
+    const ahora = new Date();
+    const encabezado =
+        `REPORTE DE TURNO — Control de Acceso Vehicular\n` +
+        `Fecha: ${ahora.toLocaleDateString()} ${ahora.toLocaleTimeString()}\n` +
+        `Registros: ${state.historial.length}\n` +
+        `${'─'.repeat(55)}\n\n`;
+
+    const cuerpo = [...state.historial].reverse().map(item =>
+        `[${item.hora}]  ${item.placa.padEnd(8)} | ` +
+        `${item.existe ? 'AUTORIZADO  ' : 'NO REGISTRADA'} | ` +
+        `${item.destino || '—'}`
+    ).join('\n');
+
+    const total      = state.historial.length;
+    const autorizados = state.historial.filter(i => i.existe).length;
+    const pie =
+        `\n\n${'─'.repeat(55)}\n` +
+        `Total: ${total}  |  Autorizados: ${autorizados}  |  No registradas: ${total - autorizados}\n`;
+
+    const blob = new Blob([encabezado + cuerpo + pie], { type: 'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `reporte_turno_${ahora.toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+/* ════════════════════════════════════════════════════════════
+   UTILIDADES
+   ════════════════════════════════════════════════════════════ */
+function ocultarResultados() {
+    el.resultBox.style.display    = 'none';
+    el.addPlateBtn.style.display  = 'none';
+    el.photoTriggerBtn.style.display = 'none';
+    el.processedPlate.style.display  = 'none';
+    cerrarCamara();
+}
+
+function hablar(msg) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(msg);
+    u.lang = 'es-MX';
+    window.speechSynthesis.speak(u);
+}
+
+let toastTimer = null;
+function mostrarToast(mensaje, tipo = 'info') {
+    el.toast.textContent = mensaje;
+    el.toast.className   = tipo;
+    el.toast.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.toast.style.display = 'none'; }, 4500);
+}
+
+/* ════════════════════════════════════════════════════════════
+   INICIO
+   ════════════════════════════════════════════════════════════ */
+descargarDatosNube();
+</script>
+</body>
+</html>
